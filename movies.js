@@ -1,6 +1,25 @@
-window.addEventListener('DOMContentLoaded', async function(event) {
+firebase.auth().onAuthStateChanged(async function (user) {
   let db = firebase.firestore()
-  let apiKey = 'your TMDB API key'
+  
+  if (user) {
+
+    db.collection('users').doc(user.uid).set({
+        name: user.displayName,
+        email: user.email
+    })
+
+    document.querySelector('.sign-in-or-sign-out').innerHTML = `
+      <p>Welcome! ${user.displayName}</p>
+      <a href="#" class="sign-out text-pink-500 underline">Sign out</a>
+      `
+    document.querySelector('.sign-out').addEventListener('click', function (event) {
+      event.preventDefault
+      firebase.auth().signout()
+      document.location.href = `movies.html`
+    })
+    
+
+  let apiKey = '5fb75a22a5b19cdea717398af48d6d30'
   let response = await fetch(`https://api.themoviedb.org/3/movie/now_playing?api_key=${apiKey}&language=en-US`)
   let json = await response.json()
   let movies = json.results
@@ -29,7 +48,25 @@ window.addEventListener('DOMContentLoaded', async function(event) {
       await db.collection('watched').doc(`${movie.id}`).set({})
     }) 
   }
+
+} else {
+ 
+  document.querySelector('.movies').classList.add('hidden')
+
+  let ui = new firebaseui.auth.AuthUI(firebase.auth())
+
+  let authUIConfig = {
+    signInOptions: [
+      firebase.auth.EmailAuthProvider.PROVIDER_ID
+    ],
+    signInSuccessUrl: 'movies.html'
+  }
+
+  ui.start('.sign-in-or-sign-out', authUIConfig)
+}
+
 })
+
 
 // Goal:   Refactor the movies application from last week, so that it supports
 //         user login and each user can have their own watchlist.
